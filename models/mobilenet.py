@@ -52,8 +52,6 @@ class MyMobileNet(nn.Module):
         out = F.relu(self.bn(self.conv(x)))
         out = self.features(out)
         out = F.avg_pool2d(out, 2)
-        # print("size: ", out.size())
         out = out.view(out.size()[0], -1)
-        # print("size: ", out.size())
         out = self.linear(out)
         return out
