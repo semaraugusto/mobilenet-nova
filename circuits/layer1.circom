@@ -3,72 +3,70 @@ pragma circom 2.1.1;
 
 include "./node_modules/circomlib/circuits/sign.circom";
 include "./node_modules/circomlib/circuits/bitify.circom";
+include "./node_modules/circomlib/circuits/comparators.circom";
 include "./node_modules/circomlib-matrix/circuits/matElemMul.circom";
 include "./node_modules/circomlib-matrix/circuits/matElemSum.circom";
 include "./util.circom";
 
-// Conv2D layer with valid padding
-template Conv2D (nRows, nCols, nChannels, nFilters, kernelSize, padding, strides) {
-// template Conv2D (nRows, nCols, nChannels) {
+// Depthwise Convolution layer with valid padding
+// Note that nFilters must be a multiple of nChannels
+// n = 10 to the power of the number of decimal places
+template DepthwiseConv2D (nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     signal input in[nRows][nCols][nChannels];
-    signal input weights[kernelSize][kernelSize][nChannels][nFilters];
-    var outRows = (nRows-kernelSize+2*padding)\strides+1;
-    var outCols = (nCols-kernelSize+2*padding)\strides+1;
-    log(9999999999999999);
-    log(outRows);
-    log(outCols);
-    log(9999999999999999);
+    // signal input weights[kernelSize][kernelSize][nChannels][nFilters];
+    signal input weights[kernelSize][kernelSize][nFilters]; // weights are 3d because depth is 1
     signal input bias[nFilters];
-    signal output out[(nRows-kernelSize)\strides+1][(nCols-kernelSize)\strides+1][nFilters];
-    log(in[0][0][0]);
-    log(weights[0][0][0][0]);
-    log(bias[0]);
 
-    component mul[(nRows-kernelSize)\strides+1][(nCols-kernelSize)\strides+1][nChannels][nFilters];
-    component elemSum[(nRows-kernelSize)\strides+1][(nCols-kernelSize)\strides+1][nChannels][nFilters];
-    component sum[(nRows-kernelSize)\strides+1][(nCols-kernelSize)\strides+1][nFilters];
+    var outRows = (nRows-kernelSize)\strides+1;
+    var outCols = (nCols-kernelSize)\strides+1;
 
-    for (var i=0; i<(nRows-kernelSize)\strides+1; i++) {
-        for (var j=0; j<(nCols-kernelSize)\strides+1; j++) {
-            for (var k=0; k<nChannels; k++) {
-                for (var m=0; m<nFilters; m++) {
-                    mul[i][j][k][m] = matElemMul(kernelSize,kernelSize);
+    signal output out[outRows][outCols][nFilters];
+    // signal input remainder[(nRows-kernelSize)\strides+1][(nCols-kernelSize)\strides+1][nFilters];
+
+    component mul[outRows][outCols][nFilters];
+    component elemSum[outRows][outCols][nFilters];
+
+    var valid_groups = nFilters % nChannels;
+    var filtersPerChannel = nFilters / nChannels;
+    log(2222222222222);
+    log(valid_groups);
+    log(filtersPerChannel);
+    log(2222222222222);
+    signal groups;
+    groups <== valid_groups;
+    component is_zero = IsZero();
+    is_zero.in <== groups;
+    is_zero.out === 1;
+
+    for (var row=0; row<outRows; row++) {
+        for (var col=0; col<outCols; col++) {
+            for (var filterMultiplier=1; filterMultiplier<=filtersPerChannel; filterMultiplier++) {
+                for (var channel=0; channel<nChannels; channel++) {
+                    var filter = filterMultiplier*channel;
+
+                    mul[row][col][filter] = matElemMul(kernelSize,kernelSize);
+
                     for (var x=0; x<kernelSize; x++) {
                         for (var y=0; y<kernelSize; y++) {
-                            mul[i][j][k][m].a[x][y] <== in[i*strides+x][j*strides+y][k];
-                            mul[i][j][k][m].b[x][y] <== weights[x][y][k][m];
+                            mul[row][col][filter].a[x][y] <== in[row*strides+x][col*strides+y][channel];
+                            mul[row][col][filter].b[x][y] <== weights[x][y][filter];
                         }
                     }
-                    elemSum[i][j][k][m] = matElemSum(kernelSize,kernelSize);
+
+                    elemSum[row][col][filter] = matElemSum(kernelSize,kernelSize);
                     for (var x=0; x<kernelSize; x++) {
                         for (var y=0; y<kernelSize; y++) {
-                            elemSum[i][j][k][m].a[x][y] <== mul[i][j][k][m].out[x][y];
+                            elemSum[row][col][filter].a[x][y] <== mul[row][col][filter].out[x][y];
                         }
                     }
+                    out[row][col][filter] <== elemSum[row][col][filter].out + bias[filter];
                 }
-            }
-            for (var m=0; m<nFilters; m++) {
-                sum[i][j][m] = Sum(nChannels);
-                for (var k=0; k<nChannels; k++) {
-                    sum[i][j][m].in[k] <== elemSum[i][j][k][m].out;
-                }
-                out[i][j][m] <== sum[i][j][m].out + bias[m];
             }
         }
     }
-    log(out[0][0][0]);
-    log(-1);
-    // component bits = Num2Bits(256);
-    // bits.in <== out[0][0][0];
-    // component sign = Sign();
-    //
-    // for (var i = 2; i < 256; i++) {
-    //     sign.in[i] <== bits.out[i];
-    // }
-    // log(11111111111111111111111);
-    // log(sign.sign);
 }
 
+
 // component main { public [step_in] } = Conv2D(32, 32, 3, 64, 3, 1);
-component main = Conv2D(32, 32, 3, 32, 3, 1, 1);
+component main = DepthwiseConv2D(34, 34, 8, 8, 3, 1);
 // component main = Conv2D(32, 32, 3);
