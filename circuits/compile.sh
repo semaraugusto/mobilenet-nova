@@ -2,8 +2,9 @@ PTAU_PATH=./powersOfTau28_hez_final_24.ptau
 
 compile () {
     local circuit_name="$1"
-    echo "circuits/main/$circuit_name.circom"
-    circom --r1cs --wasm --sym -c -o $circuit_name $circuit_name.circom &&
+    echo "$circuit_name.circom"
+    mkdir -p $circuit_name &&
+    circom --r1cs --wasm --sym -c -o $circuit_name "$circuit_name".circom &&
     echo -e "Done!\n"
     cd $circuit_name/"$circuit_name"_cpp &&
     make && 
@@ -11,7 +12,7 @@ compile () {
 }
 
 compile_phase2 () {
-    local circuit="$1" outdir="$2" pathToCircuitDir="$3"
+    local circuit="$1" outdir="$1" pathToCircuitDir="$1"
     echo $outdir;
     mkdir -p $outdir;
 
@@ -30,5 +31,10 @@ compile_phase2 () {
 }
 
 # compile layer1
-compile layer1 &&
-compile_phase2 layer1 layer1 layer1
+# compile layer1 &&
+# compile_phase2 layer1 layer1 layer1
+
+compile $1 &&
+compile_phase2 $1
+# compile Conv2D &&
+# compile_phase2 Conv2D Conv2D Conv2D 
