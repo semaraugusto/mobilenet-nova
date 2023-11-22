@@ -8,17 +8,15 @@ include "./node_modules/circomlib-matrix/circuits/matElemMul.circom";
 include "./node_modules/circomlib-matrix/circuits/matElemSum.circom";
 include "./util.circom";
 
-// Depthwise Convolution layer with valid padding
+// Pointwise Convolution layer
 // Note that nFilters must be a multiple of nChannels
-// n = 10 to the power of the number of decimal places
-template PointwiseConv2D (nRows, nCols, nChannels, nFilters, strides) {
+template PointwiseConv2D (nRows, nCols, nChannels, nFilters) {
+    var outRows = nRows; // kernel size and strides are 1
+    var outCols = nCols;
+
     signal input in[nRows][nCols][nChannels];
     signal input weights[nChannels][nFilters]; // weights are 3d because depth is 1
     signal input bias[nFilters];
-
-    var outRows = (nRows-1)\strides+1;
-    var outCols = (nCols-1)\strides+1;
-
     signal output out[outRows][outCols][nFilters];
 
     component sum[outRows][outCols][nFilters];
@@ -37,4 +35,4 @@ template PointwiseConv2D (nRows, nCols, nChannels, nFilters, strides) {
 }
 
 
-// component main = PointwiseConv2D(32, 32, 8, 16, 1);
+// component main = PointwiseConv2D(32, 32, 8, 16);
