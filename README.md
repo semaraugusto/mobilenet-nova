@@ -1,10 +1,12 @@
 # ZK Mobile net
 
-This is a mobile net for ZK, it is a light weight neural network for ZK. It is based on the [MobileNet](https://arxiv.org/abs/1704.04861) architecture. 
+This repo is a ZK implementation of a [MobileNet](https://arxiv.org/abs/1704.04861) architecture. It is a light weight neural network for ZK created for embedded devices.
 
 Initial implementation in [PyTorch](https://pytorch.org/). 
 
 Circuit implementation (TBD) in [Circom](https://docs.circom.io/) and [Nova](https://github.com/microsoft/Nova) (TBD).
+
+
 # Organization
 * Pytorch implementation in "./mobilenet.ipynb" and "models/mobilenet.py"
 * Initial Circom implementation in "./circuits/" (only separable convolution for now. Will add more circuits soon)
@@ -16,4 +18,5 @@ The image input and model weights have been quantized using a multiplication by 
 
 # Future work
 Pytorch already has a quantization method implemented as described in their [docs](https://pytorch.org/docs/stable/quantization.html) and in [this paper](https://arxiv.org/pdf/1712.05877.pdf). 
+
 Making the circuits compatible with the pytorch quantization method would be a good next step.
