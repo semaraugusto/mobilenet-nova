@@ -1,1 +1,18 @@
-/target
+# Rust
+target
+
+# Python
+__pycache__
+lightning_logs
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# Big files (e.g. datasets, weights, powersoftau)
+CIFAR10
+checkpoint
+checkpoints
+circuits/powersOfTau*
+*.wtns
+*.zkey
