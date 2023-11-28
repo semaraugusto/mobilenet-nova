@@ -21,27 +21,37 @@ template MobileNetCIFAR10(n) {
     signal input conv2d_out[inputSize][inputSize][nConvFilters];
     signal input conv2d_remainder[inputSize][inputSize][nConvFilters];
 
-    signal input bn_a[4];
-    signal input bn_b[4];
-    signal input bn_out[26][26][4];
-    signal input bn_remainder[26][26][4];
+    signal input bn_a[nConvFilters];
+    signal input bn_b[nConvFilters];
+    signal input bn_out[inputSize][inputSize][nConvFilters];
+    signal input bn_remainder[inputSize][inputSize][nConvFilters];
 
     signal output out;
+    log("something");
 
     // Start Initial Layer: Conv2D + BN + RELU
     // START INITIAL CONV 2D
     var stride = 1;
     component conv2d = Conv2D(paddedInputSize, paddedInputSize, nChannels, nConvFilters, kernelSize, stride, n);
+    log("before conv2d");
     conv2d.in <== in;
     conv2d.weights <== conv2d_weights;
     conv2d.bias <== conv2d_bias;
     conv2d.out <== conv2d_out;
     conv2d.remainder <== conv2d_remainder;
+    log("after conv2d");
     // START INITIAL BATCH NORM 2D 
     component bn = BatchNormalization2D(inputSize, inputSize, nConvFilters, n);
     bn.in <== conv2d_out;
+    bn.a <== bn_a;
+    bn.b <== bn_b;
+    bn.out <== bn_out;
+    bn.remainder <== bn_remainder;
+    log("after bn");
+    // END INITIAL BATCH NORM 2D 
 
     out <== 1; 
+    log("end");
 }
 
 component main = MobileNetCIFAR10(10**15);
