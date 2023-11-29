@@ -2,7 +2,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data.dataloader import DataLoader
 import pytorch_lightning as pl
+
 from torcheval.metrics.functional import multiclass_accuracy
 
 
@@ -43,14 +45,14 @@ class MyMobileNet(pl.LightningModule):
         (1024, 1024, 1),
     ]
     
-    def __init__(self, trainloader: torch.utils.data.dataloader.DataLoader, num_classes=10, alpha: float = 1, max_epochs: int = 50):
+    def __init__(self, steps_per_epoch, num_classes: int=10, alpha: float=1, max_epochs: int=50):
         super(MyMobileNet, self).__init__()
         conv_out = int(32 * alpha)
         self.conv = nn.Conv2d(3, conv_out, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn = nn.BatchNorm2d(conv_out)
         self.relu = nn.ReLU(inplace=False)
         self.max_epochs = max_epochs
-        self.trainloader = trainloader
+        self.steps_per_epoch = steps_per_epoch
         self.accuracy = multiclass_accuracy
 
         self.features = self.make_feature_extractor(alpha)
@@ -98,7 +100,7 @@ class MyMobileNet(pl.LightningModule):
         # Torch find_lr suggestion
         self.lr = 0.02089
         optimizer = torch.optim.AdamW(self.parameters(), lr=0.001, weight_decay=0.001)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.3, total_steps=self.max_epochs * len(self.trainloader))
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.3, total_steps=self.max_epochs * self.steps_per_epoch)
         return { "optimizer": optimizer, "lr_scheduler": scheduler }
         
     def compute_loss(self, logits, labels):
