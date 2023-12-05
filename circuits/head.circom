@@ -26,7 +26,7 @@ template MultiReLU(inputSize, nFilters) {
     ok <== 1;
 }
 
-template MobileNetCIFAR10(n) {
+template Head(n) {
     // H x W x C
     var inputSize = 32;
     var paddedInputSize = 34;
@@ -79,17 +79,8 @@ template MobileNetCIFAR10(n) {
     multi_relu.ok === 1;
 
     log("after relu");
-    // component relu[inputSize]inputSize][nConvFilters];
-    // for (var row=0; row < inputSize; row++) {
-    //     for (var col=0; col < inputSize; col++) {
-    //         for(var channel=0; channel < nConvFilters; channel++) {
-    //             relu[row][col][channel] <== bn_out[row][col][channel];
-    //         }
-    //     }
-    //
-    // }
     out <== 1; 
     log("end");
 }
 
-component main = MobileNetCIFAR10(10**15);
+component main = Head(10**15);
