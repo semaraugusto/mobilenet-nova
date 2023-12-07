@@ -1,15 +1,79 @@
-// Taken from https://github.com/nalinbhardwaj/Nova-Scotia/blob/main/examples/toy_pasta.rs
-use std::{collections::HashMap, env::current_dir, time::Instant};
+// based of https://github.com/nalinbhardwaj/Nova-Scotia/blob/main/examples/toy_pasta.rs
+use std::{collections::HashMap, env::current_dir, fs::File, io::BufReader, time::Instant};
 
 use nova_scotia::{
     circom::reader::load_r1cs, create_public_params, create_recursive_circuit, FileLocation, F, S,
 };
 use nova_snark::{
-    provider,
-    traits::{circuit::StepCircuit, Group},
-    CompressedSNARK, PublicParams,
+    // provider,
+    // traits::{circuit::StepCircuit, Group},
+    CompressedSNARK,
+    PublicParams,
 };
-use serde_json::json;
+use serde::Deserialize;
+use serde_json::{json, Value};
+
+type G1 = pasta_curves::pallas::Point;
+// type G2 = pasta_curves::vesta::Point;
+const CIRCUIT_INPUT_F: &str = "../backbone_input.json";
+
+#[derive(Debug)]
+struct CircuitInputs {
+    private_inputs: Vec<HashMap<String, Value>>,
+    start_public_input: [F<G1>; 2],
+    // start_public_dummy: Option<Vec<G2>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BackboneLayer {
+    // dims: [Height x Width x nChannels]
+    inp: Vec<Vec<Vec<String>>>,
+    // dims: [Height x Width x nFilters ] (nChannels ommited due to depthwise convolution)
+    weights: Vec<Vec<Vec<String>>>,
+    // dims: [nFilters]
+    bias: Vec<String>,
+    // dims: [Height x Width x nFilters]
+    out: Vec<Vec<Vec<String>>>,
+    // dims: [Height x Width x nFilters]
+    remainder: Vec<Vec<Vec<String>>>,
+}
+
+fn read_json(f: &str) -> BackboneLayer {
+    let f = File::open(f).unwrap();
+    let rdr = BufReader::new(f);
+    println!("- Working");
+    serde_json::from_reader(rdr).unwrap()
+}
+
+// fn generate_circuit_inputs(iteration_count) -> Vec< {
+fn generate_circuit_inputs() -> CircuitInputs {
+    let mut private_inputs = Vec::new();
+    // for i in 0..iteration_count {
+    // let mut private_input = HashMap::new();
+    // private_input.insert("adder".to_string(), json!(i));
+    // private_inputs.push(private_input);
+    // }
+    let input = read_json(CIRCUIT_INPUT_F);
+
+    let mut private_input = HashMap::new();
+    // private_input.insert("in".to_string(), json!(input.image));
+    private_input.insert("in".to_string(), json!(input.inp));
+    private_input.insert("dw_conv_weights".to_string(), json!(input.weights));
+    private_input.insert("dw_conv_bias".to_string(), json!(input.bias));
+    private_input.insert("dw_conv_out".to_string(), json!(input.out));
+    private_input.insert("dw_conv_remainder".to_string(), json!(input.remainder));
+
+    private_inputs.push(private_input);
+
+    // println!("input: {:?}", input);
+    // println!("Private inputs: {:?}", private_inputs);
+
+    let start_public_input = [F::<G1>::from(10), F::<G1>::from(10)];
+    CircuitInputs {
+        private_inputs,
+        start_public_input,
+    }
+}
 
 fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     type G1 = pasta_curves::pallas::Point;
@@ -20,21 +84,14 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
         witness_gen_filepath,
         std::any::type_name::<G1>()
     );
-    let iteration_count = 5;
+    let iteration_count = 1;
     let root = current_dir().unwrap();
 
     let circuit_file = root.join(circuit_filepath);
     let r1cs = load_r1cs::<G1, G2>(&FileLocation::PathBuf(circuit_file));
     let witness_generator_file = root.join(witness_gen_filepath);
 
-    let mut private_inputs = Vec::new();
-    for i in 0..iteration_count {
-        let mut private_input = HashMap::new();
-        private_input.insert("adder".to_string(), json!(i));
-        private_inputs.push(private_input);
-    }
-
-    let start_public_input = [F::<G1>::from(10), F::<G1>::from(10)];
+    let circuit_input = generate_circuit_inputs();
 
     let pp: PublicParams<G1, G2, _, _> = create_public_params(r1cs.clone());
 
@@ -61,20 +118,25 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     let recursive_snark = create_recursive_circuit(
         FileLocation::PathBuf(witness_generator_file),
         r1cs,
-        private_inputs,
-        start_public_input.to_vec(),
+        circuit_input.private_inputs,
+        circuit_input.start_public_input.to_vec(),
         &pp,
     )
     .unwrap();
     println!("RecursiveSNARK creation took {:?}", start.elapsed());
-
+    //
     // TODO: empty?
     let z0_secondary = [F::<G2>::from(0)];
 
     // verify the recursive SNARK
     println!("Verifying a RecursiveSNARK...");
     let start = Instant::now();
-    let res = recursive_snark.verify(&pp, iteration_count, &start_public_input, &z0_secondary);
+    let res = recursive_snark.verify(
+        &pp,
+        iteration_count,
+        &circuit_input.start_public_input,
+        &z0_secondary,
+    );
     println!(
         "RecursiveSNARK::verify: {:?}, took {:?}",
         res,
@@ -102,7 +164,7 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     let res = compressed_snark.verify(
         &vk,
         iteration_count,
-        start_public_input.to_vec(),
+        circuit_input.start_public_input.to_vec(),
         z0_secondary.to_vec(),
     );
     println!(
@@ -119,7 +181,7 @@ fn main() {
     let circuit_filepath = format!("examples/toy/{}/toy.r1cs", group_name);
     for witness_gen_filepath in [
         format!("examples/toy/{}/toy_cpp/toy", group_name),
-        format!("examples/toy/{}/toy_js/toy.wasm", group_name),
+        // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
     ] {
         run_test(circuit_filepath.clone(), witness_gen_filepath);
     }
