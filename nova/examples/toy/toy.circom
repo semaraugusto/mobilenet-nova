@@ -2,7 +2,7 @@ pragma circom 2.1.1;
 
 // include "https://github.com/0xPARC/circom-secp256k1/blob/master/circuits/bigint.circom";
 // include "../../../circuits/origDepthwiseConv2d.circom";
-include "DepthwiseConv2d.circom";
+include "origDepthwiseConv2d.circom";
 // include "PaddedDepthwiseConv2d.circom";
 // include "PaddedBatchNormalization2D.circom";
 // include "ReLU.circom";
@@ -13,7 +13,8 @@ template Backbone () {
     var paddedInputSize = 7;
     var nChannels = 3;
     var kernelSize = 3;
-    var nConvFilters = 3;
+    var nDepthFilters = 3;
+    var nPointFilters = 6;
     var stride = 1;
     signal input step_in[2];
 
@@ -21,10 +22,15 @@ template Backbone () {
 
     signal input in[paddedInputSize][paddedInputSize][nChannels];
 
-    signal input dw_conv_weights[kernelSize][kernelSize][nConvFilters]; // H x W x C x K
+    signal input dw_conv_weights[kernelSize][kernelSize][nDepthFilters]; // H x W x C x K
     signal input dw_conv_bias[nConvFilters];
-    signal input dw_conv_out[5][5][3];
-    signal input dw_conv_remainder[5][5][3];
+    signal input dw_conv_out[paddedInputSize][paddedInputSize][nDepthFilters];
+    signal input dw_conv_remainder[paddedInputSize][paddedInputSize][nDepthFilters];
+
+    signal input pw_conv_weights[kernelSize][kernelSize][nPointFilters]; // H x W x C x K
+    signal input pw_conv_bias[nPointFilters];
+    signal input pw_conv_out[paddedInputSize][paddedInputSize][nPointFilters];
+    signal input pw_conv_remainder[paddedInputSize][paddedInputSize][nPointFilters];
     
     // signal input dw_bn_a[nConvFilters]; // H x W x C x K
     // signal input dw_bn_b[nConvFilters];
@@ -34,7 +40,7 @@ template Backbone () {
     log("START");
     
     // component conv = DepthwiseConv2D(paddedInputSize, paddedInputSize, nChannels, nConvFilters, kernelSize, stride, 10**15);
-    component conv = DepthwiseConv2D(7, 7, 3, 3, 3, 1, 10**15);
+    component conv = PaddedDepthwiseConv2D(7, 7, 3, 3, 10**15);
 
     conv.in <== in;
     conv.weights <== dw_conv_weights;
