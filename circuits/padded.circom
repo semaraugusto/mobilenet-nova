@@ -43,6 +43,11 @@ template Padded (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input pw_conv_out[paddedInputSize][paddedInputSize][nPointFilters];
     signal input pw_conv_remainder[paddedInputSize][paddedInputSize][nPointFilters];
 
+    signal input pw_bn_a[nPointFilters];
+    signal input pw_bn_b[nPointFilters];
+    signal input pw_bn_out[paddedInputSize][paddedInputSize][nPointFilters];
+    signal input pw_bn_remainder[paddedInputSize][paddedInputSize][nPointFilters];
+
     log("START");
     
     // component conv = DepthwiseConv2D(paddedInputSize, paddedInputSize, nChannels, nConvFilters, kernelSize, stride, 10**15);
@@ -61,7 +66,7 @@ template Padded (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     dw_bn.b <== dw_bn_b;
     dw_bn.out <== dw_bn_out;
     dw_bn.remainder <== dw_bn_remainder;
-    log("dw batch norm done");
+    log("depth batch norm done");
 
     component pw_conv = PointwiseConv2D(nRows, nCols, nDepthFilters, nPointFilters, n);
     pw_conv.in <== dw_bn_out;
@@ -70,6 +75,15 @@ template Padded (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     pw_conv.out <== pw_conv_out;
     pw_conv.remainder <== pw_conv_remainder;
     log("pw_conv done");
+
+    component pw_bn = BatchNormalization2D(nRows, nCols, nPointFilters, n);
+    pw_bn.in <== pw_conv_out;
+    pw_bn.a <== pw_bn_a;
+    pw_bn.b <== pw_bn_b;
+    pw_bn.out <== pw_bn_out;
+    pw_bn.remainder <== pw_bn_remainder;
+    log("point batch norm done");
+
     log("END");
 }
 
