@@ -11,7 +11,7 @@ pragma circom 2.1.1;
 // include "./BatchNormalization2D.circom";
 // include "./node_modules/circomlib-ml/circuits/ReLU.circom";
 // include "./util.circom";
-// include "./utils/utils.circom";
+include "./utils/utils.circom";
 include "./SeparableBNConv.circom";
 
 // Depthwise Convolution layer with valid padding
@@ -24,8 +24,7 @@ template Backbone (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
 
     // // [running of hash outputted by the previous layer, hash of the activations of the previous layer]
     // signal input step_in[2];
-
-
+    // signal output step_out[2];
 
     signal input in[paddedInputSize][paddedInputSize][nChannels];
 
@@ -50,7 +49,12 @@ template Backbone (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input pw_bn_out[paddedInputSize][paddedInputSize][nPointFilters];
     signal input pw_bn_remainder[paddedInputSize][paddedInputSize][nPointFilters];
 
-    component layer = SeparableBNConvolution(7, 7, 3, 3, 6, 10**15);
+    // component mimc_input = MimcHashMatrix3D(paddedInputSize, paddedInputSize, nChannels);
+    // mimc_input <== in;
+    // step_in[1] === mimc_previous_activations.hash;
+
+
+    component layer = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
     layer.in <== in;
     layer.dw_conv_weights <== dw_conv_weights;
     layer.dw_conv_bias <== dw_conv_bias;
@@ -71,6 +75,11 @@ template Backbone (nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     layer.pw_bn_b <== pw_bn_b;
     layer.pw_bn_out <== pw_bn_out;
     layer.pw_bn_remainder <== pw_bn_remainder;
+
+    // component mimc_output = MimcHashMatrix3D(paddedInputSize, paddedInputSize, nPointFilters);
+    // mimc_hash_activations.matrix <== pw_bn_out;
+    // step_out[1] <== mimc_hash_activations.hash;
 }
 
-component main = Backbone(7, 7, 3, 3, 6, 10**15);
+// component main = Backbone(7, 7, 3, 3, 6, 10**15);
+component main = Backbone(32, 32, 8, 8, 16, 10**15);
