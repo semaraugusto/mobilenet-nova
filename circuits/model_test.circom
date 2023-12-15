@@ -37,7 +37,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input l0_dw_bn_out[nRows][nCols][nDepthFilters];
     signal input l0_dw_bn_remainder[nRows][nCols][nDepthFilters];
 
-    // signal input pw_conv_weights[kernelSize][kernelSize][nPointFilters]; // H x W x C x K
     signal input l0_pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
     signal input l0_pw_conv_bias[nPointFilters];
     signal input l0_pw_conv_out[nRows][nCols][nPointFilters];
@@ -59,7 +58,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input l1_dw_bn_out[nRows][nCols][nDepthFilters];
     signal input l1_dw_bn_remainder[nRows][nCols][nDepthFilters];
 
-    // signal input pw_conv_weights[kernelSize][kernelSize][nPointFilters]; // H x W x C x K
     signal input l1_pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
     signal input l1_pw_conv_bias[nPointFilters];
     signal input l1_pw_conv_out[nRows][nCols][nPointFilters];
@@ -80,7 +78,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input l2_dw_bn_out[nRows][nCols][nDepthFilters];
     signal input l2_dw_bn_remainder[nRows][nCols][nDepthFilters];
 
-    // signal input pw_conv_weights[kernelSize][kernelSize][nPointFilters]; // H x W x C x K
     signal input l2_pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
     signal input l2_pw_conv_bias[nPointFilters];
     signal input l2_pw_conv_out[nRows][nCols][nPointFilters];
