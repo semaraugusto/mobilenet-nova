@@ -29,7 +29,6 @@ template PaddedDepthwiseConv2D (nRows, nCols, nChannels, nFilters, kernelSize, s
 
     var valid_groups = nFilters % nChannels;
     var filtersPerChannel = nFilters / nChannels;
-    log("PRIME - 1", -1);
 
     signal groups;
     groups <== valid_groups;
@@ -40,29 +39,26 @@ template PaddedDepthwiseConv2D (nRows, nCols, nChannels, nFilters, kernelSize, s
     // Can probably remove below loops using main loop instead
     // Checking if padding has been applied correctly on the columns (albeit walking along the rows and checking if them are 0)
     for (var row=0; row<nRows; row++) {
-        for (var filterMultiplier=1; filterMultiplier<=filtersPerChannel; filterMultiplier++) {
-            for (var channel=0; channel<nChannels; channel++) {
-                var filter = filterMultiplier*channel;
+        // for (var filterMultiplier=1; filterMultiplier<=filtersPerChannel; filterMultiplier++) {
+        //     for (var channel=0; channel<nChannels; channel++) {
+        for (var filter=0; filter<nFilters; filter++) {
+                // var filter = filterMultiplier*channel;
                 out[row][0][filter] === 0;
                 out[row][nCols-1][filter] === 0;
 
                 remainder[row][0][filter] === 0;
                 remainder[row][nCols-1][filter] === 0;
             }
-        }
     }
     // Checking if padding has been applied correctly on the rows (albeit walking along the columns and checking if them are 0)
     for (var col=0; col<nCols; col++) {
-        for (var filterMultiplier=1; filterMultiplier<=filtersPerChannel; filterMultiplier++) {
-            for (var channel=0; channel<nChannels; channel++) {
-                var filter = filterMultiplier*channel;
+        for (var filter=0; filter<nFilters; filter++) {
                 out[0][col][filter] === 0;
                 out[nRows-1][col][filter] === 0;
 
                 remainder[0][col][filter] === 0;
                 remainder[nRows-1][col][filter] === 0;
             }
-        }
     }
 
     for (var row=0; row<outRows; row++) {
@@ -87,7 +83,6 @@ template PaddedDepthwiseConv2D (nRows, nCols, nChannels, nFilters, kernelSize, s
                         }
                     }
                     assert (remainder[row+1][col+1][filter] < n);
-
                     out[row+1][col+1][filter] * n + remainder[row+1][col+1][filter] === elemSum[row][col][filter].out + bias[filter];
                 }
             }
