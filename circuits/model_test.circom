@@ -48,25 +48,25 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input l0_pw_bn_remainder[nRows][nCols][nPointFilters];
 
 
-    // signal input l1_dw_conv_weights[kernelSize][kernelSize][nDepthFilters]; // H x W x C x K
-    // signal input l1_dw_conv_bias[nDepthFilters];
-    // signal input l1_dw_conv_out[nRows][nCols][nDepthFilters];
-    // signal input l1_dw_conv_remainder[nRows][nCols][nDepthFilters];
-    //
-    // signal input l1_dw_bn_a[nDepthFilters];
-    // signal input l1_dw_bn_b[nDepthFilters];
-    // signal input l1_dw_bn_out[nRows][nCols][nDepthFilters];
-    // signal input l1_dw_bn_remainder[nRows][nCols][nDepthFilters];
-    //
-    // signal input l1_pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
-    // signal input l1_pw_conv_bias[nPointFilters];
-    // signal input l1_pw_conv_out[nRows][nCols][nPointFilters];
-    // signal input l1_pw_conv_remainder[nRows][nCols][nPointFilters];
-    //
-    // signal input l1_pw_bn_a[nPointFilters];
-    // signal input l1_pw_bn_b[nPointFilters];
-    // signal input l1_pw_bn_out[nRows][nCols][nPointFilters];
-    // signal input l1_pw_bn_remainder[nRows][nCols][nPointFilters];
+    signal input l1_dw_conv_weights[kernelSize][kernelSize][nDepthFilters]; // H x W x C x K
+    signal input l1_dw_conv_bias[nDepthFilters];
+    signal input l1_dw_conv_out[nRows][nCols][nDepthFilters];
+    signal input l1_dw_conv_remainder[nRows][nCols][nDepthFilters];
+
+    signal input l1_dw_bn_a[nDepthFilters];
+    signal input l1_dw_bn_b[nDepthFilters];
+    signal input l1_dw_bn_out[nRows][nCols][nDepthFilters];
+    signal input l1_dw_bn_remainder[nRows][nCols][nDepthFilters];
+
+    signal input l1_pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
+    signal input l1_pw_conv_bias[nPointFilters];
+    signal input l1_pw_conv_out[nRows][nCols][nPointFilters];
+    signal input l1_pw_conv_remainder[nRows][nCols][nPointFilters];
+
+    signal input l1_pw_bn_a[nPointFilters];
+    signal input l1_pw_bn_b[nPointFilters];
+    signal input l1_pw_bn_out[nRows][nCols][nPointFilters];
+    signal input l1_pw_bn_remainder[nRows][nCols][nPointFilters];
 
     // signal input l2_dw_conv_weights[kernelSize][kernelSize][nDepthFilters]; // H x W x C x K
     // signal input l2_dw_conv_bias[nDepthFilters];
@@ -116,28 +116,28 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
 
 
     log("LAYER 0 DONE");
-    // component layer1 = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
-    // layer1.in <== l0_pw_bn_out;
-    // layer1.dw_conv_weights <== l1_dw_conv_weights;
-    // layer1.dw_conv_bias <== l1_dw_conv_bias;
-    // layer1.dw_conv_out <== l1_dw_conv_out;
-    // layer1.dw_conv_remainder <== l1_dw_conv_remainder;
-    //
-    // layer1.dw_bn_a <== l1_dw_bn_a;
-    // layer1.dw_bn_b <== l1_dw_bn_b;
-    // layer1.dw_bn_out <== l1_dw_bn_out;
-    // layer1.dw_bn_remainder <== l1_dw_bn_remainder;
-    //
-    // layer1.pw_conv_weights <== l1_pw_conv_weights;
-    // layer1.pw_conv_bias <== l1_pw_conv_bias;
-    // layer1.pw_conv_out <== l1_pw_conv_out;
-    // layer1.pw_conv_remainder <== l1_pw_conv_remainder;
-    //
-    // layer1.pw_bn_a <== l1_pw_bn_a;
-    // layer1.pw_bn_b <== l1_pw_bn_b;
-    // layer1.pw_bn_out <== l1_pw_bn_out;
-    // layer1.pw_bn_remainder <== l1_pw_bn_remainder;
-    // log("LAYER 1 DONE");
+    component layer1 = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
+    layer1.in <== l0_pw_bn_out;
+    layer1.dw_conv_weights <== l1_dw_conv_weights;
+    layer1.dw_conv_bias <== l1_dw_conv_bias;
+    layer1.dw_conv_out <== l1_dw_conv_out;
+    layer1.dw_conv_remainder <== l1_dw_conv_remainder;
+
+    layer1.dw_bn_a <== l1_dw_bn_a;
+    layer1.dw_bn_b <== l1_dw_bn_b;
+    layer1.dw_bn_out <== l1_dw_bn_out;
+    layer1.dw_bn_remainder <== l1_dw_bn_remainder;
+
+    layer1.pw_conv_weights <== l1_pw_conv_weights;
+    layer1.pw_conv_bias <== l1_pw_conv_bias;
+    layer1.pw_conv_out <== l1_pw_conv_out;
+    layer1.pw_conv_remainder <== l1_pw_conv_remainder;
+
+    layer1.pw_bn_a <== l1_pw_bn_a;
+    layer1.pw_bn_b <== l1_pw_bn_b;
+    layer1.pw_bn_out <== l1_pw_bn_out;
+    layer1.pw_bn_remainder <== l1_pw_bn_remainder;
+    log("LAYER 1 DONE");
 
     // component layer2 = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
     // layer2.in <== l1_pw_bn_out;
@@ -168,4 +168,4 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
 }
 
 // component main = Backbone(7, 7, 3, 3, 6, 10**15);
-component main = Backbone(32, 32, 128, 128, 128, 10**15);
+component main = Backbone(32, 32, 96, 96, 96, 10**15);

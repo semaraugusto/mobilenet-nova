@@ -1,7 +1,7 @@
 pragma circom 2.1.1;
 
-include "./node_modules/circomlib-ml/circuits/PointwiseConv2D.circom";
-include "./node_modules/circomlib-ml/circuits/DepthwiseConv2D.circom";
+// include "./node_modules/circomlib-ml/circuits/PointwiseConv2D.circom";
+// include "./node_modules/circomlib-ml/circuits/DepthwiseConv2D.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
 include "./node_modules/circomlib-ml/circuits/BatchNormalization2D.circom";
 include "./node_modules/circomlib-ml/circuits/ReLU.circom";
@@ -16,7 +16,6 @@ template MultiReLU(inputSize, nFilters) {
     for (var row=0; row < inputSize; row++) {
         for (var col=0; col < inputSize; col++) {
             for(var filter=0; filter < nFilters; filter++) {
-                // log("at: ", row, col, filter);
                 relu[row][col][filter] = ReLU();
                 relu[row][col][filter].in <== in[row][col][filter];
                 relu[row][col][filter].out <== out[row][col][filter];
@@ -31,7 +30,7 @@ template Head(n) {
     var inputSize = 32;
     var paddedInputSize = 34;
     var nChannels = 3;
-    var nConvFilters = 8;
+    var nConvFilters = 3;
     var kernelSize = 3;
 
     signal input in[paddedInputSize][paddedInputSize][nChannels];
