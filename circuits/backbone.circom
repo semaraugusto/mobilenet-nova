@@ -90,4 +90,4 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
 }
 
 // component main = Backbone(7, 7, 3, 3, 6, 10**15);
-component main { public [step_in] } = Backbone(32, 32, 64, 64, 64, 10**15);
+component main { public [step_in] } = Backbone(32, 32, 128, 128, 128, 10**15);
