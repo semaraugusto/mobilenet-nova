@@ -34,13 +34,17 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     signal input pw_bn_remainder[nRows][nCols][nPointFilters];
 
     // Hash input and check it matches step_in[1]
+    log("BACKBONE STARTED");
     component mimc_input = MimcHashMatrix3D(nRows, nRows, nChannels);
     mimc_input.matrix <== in;
+    log("STEP_IN     RESULT", step_in[1]);
+    log("HASH OUTPUT RESULT", mimc_input.hash);
     step_in[1] === mimc_input.hash;
 
     // Hash depthwise weights
     component mimc_dw_weights = MimcHashMatrix3D(kernelSize, kernelSize, nChannels);
     mimc_dw_weights.matrix <== dw_conv_weights;
+    log("WEIGHTS HASH RESULT", mimc_dw_weights.hash);
 
     // Hash biases and bn parameters
     component mimc_params = MimcHashScalarParams(nDepthFilters, nPointFilters);
@@ -58,7 +62,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     for (var row = 0; row < nDepthFilters; row++) {
         for (var col = 0; col < nPointFilters; col++) {
         mimc_pw_weights.ins[i] <== pw_conv_weights[row][col];
-        // signal input pw_conv_weights[nDepthFilters][nPointFilters]; // weights are 2d because kernel_size is 1
         i += 1;
         }
     }
@@ -75,7 +78,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     mimc_composite.ins[3] <== mimc_pw_weights.outs[0];
 
     step_out[0] <== mimc_composite.outs[0];
-
 
     component layer = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
     layer.in <== in;
