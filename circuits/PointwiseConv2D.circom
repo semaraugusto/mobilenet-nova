@@ -1,11 +1,11 @@
 pragma circom 2.1.1;
 // include "./Conv2D.circom";
 
-include "./circomlib/sign.circom";
-include "./circomlib/bitify.circom";
-include "./circomlib/comparators.circom";
-include "./circomlib-matrix/matElemMul.circom";
-include "./circomlib-matrix/matElemSum.circom";
+include "./node_modules/circomlib/circuits/sign.circom";
+include "./node_modules/circomlib/circuits/bitify.circom";
+include "./node_modules/circomlib/circuits/comparators.circom";
+include "./node_modules/circomlib-matrix/circuits/matElemMul.circom";
+include "./node_modules/circomlib-matrix/circuits/matElemSum.circom";
 include "./util.circom";
 
 // Pointwise Convolution layer

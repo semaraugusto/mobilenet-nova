@@ -1,8 +1,10 @@
 pragma circom 2.1.1;
 
 include "./utils/utils.circom";
-include "./AveragePooling2D.circom";
-include "./Dense.circom";
+// include "./AveragePooling2D.circom";
+include "./node_modules/circomlib-ml/circuits/AveragePooling2D.circom";
+include "./node_modules/circomlib-ml/circuits/Dense.circom";
+// include "./Dense.circom";
 
 template Tail(n) {
     // H x W x C

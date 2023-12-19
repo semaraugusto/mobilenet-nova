@@ -7,7 +7,7 @@ include "./node_modules/circomlib/circuits/comparators.circom";
 include "./node_modules/circomlib-matrix/circuits/matElemMul.circom";
 include "./node_modules/circomlib-matrix/circuits/matElemSum.circom";
 include "./paddedDepthwiseConv.circom";
-include "./PaddedPointwiseConv2D.circom";
+include "./PointwiseConv2D.circom";
 include "./PaddedBatchNormalization2D.circom";
 // include "./node_modules/circomlib-ml/circuits/ReLU.circom";
 // include "./util.circom";

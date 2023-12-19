@@ -3,6 +3,7 @@ pragma circom 2.1.1;
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
 include "./node_modules/circomlib-ml/circuits/BatchNormalization2D.circom";
 include "./node_modules/circomlib-ml/circuits/ReLU.circom";
+// include "./ReLU.circom";
 
 template MultiReLU(inputSize, nFilters) {
     signal input in[inputSize][inputSize][nFilters];
@@ -28,7 +29,7 @@ template Head(n) {
     var inputSize = 32;
     var paddedInputSize = 34;
     var nChannels = 3;
-    var nConvFilters = 3;
+    var nConvFilters = 1;
     var kernelSize = 3;
 
     signal input in[paddedInputSize][paddedInputSize][nChannels];
