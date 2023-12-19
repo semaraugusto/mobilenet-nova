@@ -14,3 +14,5 @@ serde = { version = "1.0.152", features = ["derive"] }
 pasta_curves = "0.5"
 ff = { version = "0.13", features = ["derive"] }
 num-bigint = "0.4"
+num-traits = "0.2.17"
+primitive-types = "0.12.2"

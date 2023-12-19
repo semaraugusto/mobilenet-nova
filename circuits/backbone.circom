@@ -66,10 +66,6 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
         }
     }
 
-    component mimc_hash_output = MimcHashMatrix3D(nRows, nCols, nPointFilters);
-    mimc_hash_output.matrix <== pw_bn_out;
-    step_out[1] <== mimc_hash_output.hash;
-
     component mimc_composite = MiMCSponge(4, 91, 1);
     mimc_composite.k <== 0;
     mimc_composite.ins[0] <== step_in[0];
@@ -78,6 +74,11 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     mimc_composite.ins[3] <== mimc_pw_weights.outs[0];
 
     step_out[0] <== mimc_composite.outs[0];
+
+    component mimc_hash_output = MimcHashMatrix3D(nRows, nCols, nPointFilters);
+    mimc_hash_output.matrix <== pw_bn_out;
+    step_out[1] <== mimc_hash_output.hash;
+
 
     component layer = SeparableBNConvolution(nRows, nCols, nChannels, nDepthFilters, nPointFilters, 10**15);
     layer.in <== in;
@@ -117,4 +118,4 @@ template Backbone(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
 }
 
 // component main = Backbone(7, 7, 3, 3, 6, 10**15);
-component main { public [step_in] } = Backbone(32, 32, 64, 64, 64, 10**15);
+component main { public [step_in] } = Backbone(32, 32, 32, 32, 32, 10**15);

@@ -1,22 +1,49 @@
 // based of https://github.com/nalinbhardwaj/Nova-Scotia/blob/main/examples/toy_pasta.rs
-use std::{collections::HashMap, env::current_dir, fs::File, io::BufReader, time::Instant};
+use std::{
+    collections::HashMap, env::current_dir, fs::File, io::BufReader, path::PathBuf, str::FromStr,
+    time::Instant,
+};
 
 use nova_scotia::{
-    circom::reader::load_r1cs, create_public_params, create_recursive_circuit, FileLocation, F, S,
+    circom::{
+        circuit::{CircomCircuit, R1CS},
+        // circuit::CircomCircuit,
+        reader::{generate_witness_from_wasm, load_r1cs},
+    },
+    // create_public_params, create_recursive_circuit, FileLocation, F, S,
+    // create_public_params, create_recursive_circuit, FileLocation, F, F1, F2, G1, G2, S1, S2,
+    create_public_params,
+    create_recursive_circuit,
+    FileLocation,
+    C1,
+    C2,
+    F,
+    S,
 };
 use nova_snark::{
     // provider,
     // traits::{circuit::StepCircuit, Group},
+    // traits::{circuit::TrivialTestCircuit, Group},
+    traits::Group,
     CompressedSNARK,
     PublicParams,
 };
-use serde::Deserialize;
+use num_bigint::BigInt;
+use num_traits::Num;
+use primitive_types::U256;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use serde_with::with_prefix;
 
 type G1 = pasta_curves::pallas::Point;
-// type G2 = pasta_curves::vesta::Point;
-const CIRCUIT_INPUT_F: &str = "../backbone1_test.json";
+type G2 = pasta_curves::vesta::Point;
+
+// type C1 = CircomCircuit<<G1 as Group>::Scalar>;
+// type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
+
+const CIRCUIT_INPUT_F: &str = "../full_backbone_test.json";
+const MIMC_CIRCUIT_WASM: &str = "../circuits/MiMC3D/MiMC3D_js/MiMC3D.wasm";
+const MIMC_CIRCUIT_R1CS: &str = "../circuits/MiMC3D/MiMC3D.r1cs";
 
 #[derive(Debug)]
 struct CircuitInputs {
@@ -80,34 +107,27 @@ impl BackboneLayer {
         private_input.insert("dw_conv_weights".to_string(), json!(self.dw_conv.weights));
         private_input.insert("dw_conv_bias".to_string(), json!(self.dw_conv.bias));
         private_input.insert("dw_conv_out".to_string(), json!(self.dw_conv.out));
-        private_input.insert(
-            "dw_conv_remainder".to_string(),
-            json!(self.dw_conv.remainder),
-        );
-
-        println!("-> dw_conv inputs inserted");
-
+        // private_input.insert(
+        //     "dw_conv_remainder".to_string(),
+        //     json!(self.dw_conv.remainder),
+        // );
         private_input.insert("dw_bn_a".to_string(), json!(self.dw_bn.a));
         private_input.insert("dw_bn_b".to_string(), json!(self.dw_bn.b));
         private_input.insert("dw_bn_out".to_string(), json!(self.dw_bn.out));
-        private_input.insert("dw_bn_remainder".to_string(), json!(self.dw_bn.remainder));
-        println!("-> dw_bn inputs inserted");
-        //
+        // private_input.insert("dw_bn_remainder".to_string(), json!(self.dw_bn.remainder));
+
         private_input.insert("pw_conv_weights".to_string(), json!(self.pw_conv.weights));
         private_input.insert("pw_conv_bias".to_string(), json!(self.pw_conv.bias));
         private_input.insert("pw_conv_out".to_string(), json!(self.pw_conv.out));
-        private_input.insert(
-            "pw_conv_remainder".to_string(),
-            json!(self.pw_conv.remainder),
-        );
-        println!("-> pw_conv inputs inserted");
+        // private_input.insert(
+        //     "pw_conv_remainder".to_string(),
+        //     json!(self.pw_conv.remainder),
+        // );
 
         private_input.insert("pw_bn_a".to_string(), json!(self.pw_bn.a));
         private_input.insert("pw_bn_b".to_string(), json!(self.pw_bn.b));
         private_input.insert("pw_bn_out".to_string(), json!(self.pw_bn.out));
-        private_input.insert("pw_bn_remainder".to_string(), json!(self.pw_bn.remainder));
-
-        println!("-> pw_bn inputs inserted");
+        // private_input.insert("pw_bn_remainder".to_string(), json!(self.pw_bn.remainder));
     }
 }
 
@@ -122,19 +142,6 @@ struct CircuitLayer {
     inp: Vec<Vec<Vec<String>>>,
     backbone: Vec<BackboneLayer>,
 }
-// #[derive(Debug, Deserialize)]
-// struct BackboneLayer {
-//     // dims: [Height x Width x nChannels]
-//     inp: Vec<Vec<Vec<String>>>,
-//     // dims: [Height x Width x nFilters ] (nChannels ommited due to depthwise convolution)
-//     weights: Vec<Vec<Vec<String>>>,
-//     // dims: [nFilters]
-//     bias: Vec<String>,
-//     // dims: [Height x Width x nFilters]
-//     out: Vec<Vec<Vec<String>>>,
-//     // dims: [Height x Width x nFilters]
-//     remainder: Vec<Vec<Vec<String>>>,
-// }
 
 fn read_json(f: &str) -> CircuitLayer {
     let f = File::open(f).unwrap();
@@ -142,13 +149,66 @@ fn read_json(f: &str) -> CircuitLayer {
     println!("- Working");
     serde_json::from_reader(rdr).unwrap()
 }
+/*
+ * Taken from https://github.com/lyronctk/zator/blob/main/nova/src/main.rs
+ * Computes the MiMC hash of an input 3D array. Used to satisfy input hash
+ * check for initial backbone layer.
+ */
+#[derive(Serialize)]
+struct MiMC3DInput {
+    dummy: String,
+    arr: Vec<Vec<Vec<String>>>,
+}
+pub type F1 = <G1 as Group>::Scalar;
+
+// fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<String>>>) -> String {
+fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<String>>>) -> BigInt {
+    println!("Start hashing");
+    let witness_gen_output = PathBuf::from("circom_witness.wtns");
+
+    let inp = MiMC3DInput {
+        dummy: String::from("0"),
+        arr: arr.clone(),
+    };
+    let input_json = serde_json::to_string(&inp).unwrap();
+    let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
+        &FileLocation::PathBuf(wasm),
+        &input_json,
+        &witness_gen_output,
+    );
+    println!("MIMC Witness generated");
+
+    let circuit = CircomCircuit {
+        r1cs: r1cs.clone(),
+        witness: Some(witness),
+    };
+    let pub_outputs = circuit.get_public_outputs();
+    std::fs::remove_file(witness_gen_output).unwrap();
+
+    let stripped = format!("{:?}", pub_outputs[0])
+        .strip_prefix("0x")
+        .unwrap()
+        .to_string();
+    // let string = BigInt::from_str_radix(&stripped, 16).unwrap();
+    let big = BigInt::from_str_radix(&stripped, 16).unwrap();
+    println!("mimc3d output: {:?}", big);
+
+    big
+    // string.to_str_radix(10)
+}
 
 // fn generate_circuit_inputs(iteration_count) -> Vec< {
-fn generate_circuit_inputs(iteration_count: usize) -> CircuitInputs {
+fn generate_circuit_inputs(
+    iteration_count: usize,
+    mimc_r1cs: &R1CS<F1>,
+    mimc_wasm: PathBuf,
+) -> CircuitInputs {
     let mut private_inputs = Vec::new();
     let input = read_json(CIRCUIT_INPUT_F);
 
     println!("- Json read");
+
+    let step_in = mimc3d(mimc_r1cs, mimc_wasm, input.inp.clone());
 
     for i in 0..iteration_count {
         let mut private_input = HashMap::new();
@@ -164,75 +224,15 @@ fn generate_circuit_inputs(iteration_count: usize) -> CircuitInputs {
         private_inputs.push(private_input);
     }
 
-    let mut testing = Vec::new();
-    let mut test = HashMap::new();
-    // private_input.insert("in".to_string(), json!(input.image));
-    test.insert("in".to_string(), json!(input.inp));
-    test.insert(
-        "dw_conv_weights".to_string(),
-        json!(input.backbone[0].dw_conv.weights),
-    );
-    test.insert(
-        "dw_conv_bias".to_string(),
-        json!(input.backbone[0].dw_conv.bias),
-    );
-    test.insert(
-        "dw_conv_out".to_string(),
-        json!(input.backbone[0].dw_conv.out),
-    );
-    test.insert(
-        "dw_conv_remainder".to_string(),
-        json!(input.backbone[0].dw_conv.remainder),
-    );
-
-    println!("- dw_conv inputs inserted");
-
-    test.insert("dw_bn_a".to_string(), json!(input.backbone[0].dw_bn.a));
-    test.insert("dw_bn_b".to_string(), json!(input.backbone[0].dw_bn.b));
-    test.insert("dw_bn_out".to_string(), json!(input.backbone[0].dw_bn.out));
-    test.insert(
-        "dw_bn_remainder".to_string(),
-        json!(input.backbone[0].dw_bn.remainder),
-    );
-    println!("- dw_bn inputs inserted");
-    //
-    test.insert(
-        "pw_conv_weights".to_string(),
-        json!(input.backbone[0].pw_conv.weights),
-    );
-    test.insert(
-        "pw_conv_bias".to_string(),
-        json!(input.backbone[0].pw_conv.bias),
-    );
-    test.insert(
-        "pw_conv_out".to_string(),
-        json!(input.backbone[0].pw_conv.out),
-    );
-    test.insert(
-        "pw_conv_remainder".to_string(),
-        json!(input.backbone[0].pw_conv.remainder),
-    );
-    println!("- pw_conv inputs inserted");
-
-    test.insert("pw_bn_a".to_string(), json!(input.backbone[0].pw_bn.a));
-    test.insert("pw_bn_b".to_string(), json!(input.backbone[0].pw_bn.b));
-    test.insert("pw_bn_out".to_string(), json!(input.backbone[0].pw_bn.out));
-    test.insert(
-        "pw_bn_remainder".to_string(),
-        json!(input.backbone[0].pw_bn.remainder),
-    );
-    println!("- pw_bn inputs inserted");
-
-    testing.push(test);
-
     assert!(private_inputs.len() == iteration_count);
-    assert!(testing.len() == 1);
-    assert!(
-        testing[0] == private_inputs[0],
-        "testing not equal priv inputs"
-    );
 
-    let start_public_input = [F::<G1>::from(10), F::<G1>::from(10)];
+    let v_1 = step_in.to_str_radix(10);
+    // let start_public_input = vec![
+    let start_public_input = [
+        F1::from(0),
+        F1::from_raw(U256::from_dec_str(&v_1).unwrap().0),
+    ];
+
     CircuitInputs {
         private_inputs,
         start_public_input,
@@ -240,8 +240,8 @@ fn generate_circuit_inputs(iteration_count: usize) -> CircuitInputs {
 }
 
 fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
-    type G1 = pasta_curves::pallas::Point;
-    type G2 = pasta_curves::vesta::Point;
+    // type G1 = pasta_curves::pallas::Point;
+    // type G2 = pasta_curves::vesta::Point;
 
     println!(
         "Running test with witness generator: {} and group: {}",
@@ -251,13 +251,18 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     let iteration_count = 13;
     let root = current_dir().unwrap();
 
+    let mimc3d_r1cs = load_r1cs::<G1, G2>(&FileLocation::PathBuf(root.join(MIMC_CIRCUIT_R1CS)));
+    let mimc3d_wasm = root.join(MIMC_CIRCUIT_WASM);
+    println!("MIMC3D R1CS and WASM loaded",);
+
+    let circuit_input = generate_circuit_inputs(iteration_count, &mimc3d_r1cs, mimc3d_wasm);
+    println!("- circuit inputs generated");
+
     let circuit_file = root.join(circuit_filepath);
     let r1cs = load_r1cs::<G1, G2>(&FileLocation::PathBuf(circuit_file));
     let witness_generator_file = root.join(witness_gen_filepath);
+    println!("backbone R1CS and WASM loaded",);
 
-    let circuit_input = generate_circuit_inputs(iteration_count);
-
-    println!("- circuit inputs generated");
     let start = Instant::now();
     let pp: PublicParams<G1, G2, _, _> = create_public_params(r1cs.clone());
 
@@ -356,6 +361,11 @@ fn main() {
         "../circuits/backbone/backbone_cpp/backbone".to_string(),
         // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
     ] {
+        // let circuit_filepath = "../circuits/hashing/hashing.r1cs".to_string();
+        // for witness_gen_filepath in [
+        //     "../circuits/hashing/hashing_cpp/hashing".to_string(),
+        //     // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
+        // ] {
         run_test(circuit_filepath.clone(), witness_gen_filepath);
     }
 }

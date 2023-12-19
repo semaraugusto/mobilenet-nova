@@ -1,7 +1,5 @@
 pragma circom 2.1.1;
 
-// include "./node_modules/circomlib-ml/circuits/PointwiseConv2D.circom";
-// include "./node_modules/circomlib-ml/circuits/DepthwiseConv2D.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
 include "./node_modules/circomlib-ml/circuits/BatchNormalization2D.circom";
 include "./node_modules/circomlib-ml/circuits/ReLU.circom";
