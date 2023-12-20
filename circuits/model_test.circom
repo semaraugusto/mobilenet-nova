@@ -162,7 +162,7 @@ template Backbone2(nRows, nCols, nChannels, nDepthFilters, nPointFilters, n) {
     log("POINTWISE WEIGHTS HASH RESULT", l1_mimc_pw_weights.outs[0]);
 
     component l1_mimc_hash_output = MimcHashMatrix3D(nRows, nCols, nPointFilters);
-    l1_mimc_hash_output.matrix <== l0_pw_bn_out;
+    l1_mimc_hash_output.matrix <== l1_pw_bn_out;
     log("OUTPUT HASH RESULT", l1_mimc_hash_output.hash);
 
     component l1_mimc_composite = MiMCSponge(4, 91, 1);

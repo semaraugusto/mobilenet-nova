@@ -34,8 +34,8 @@ compile_phase2 () {
 # compile layer1 &&
 # compile_phase2 layer1 layer1 layer1
 
-compile $1
-# compile $1 &&
-# compile_phase2 $1
+# compile $1
+compile $1 &&
+compile_phase2 $1
 # compile Conv2D &&
 # compile_phase2 Conv2D Conv2D Conv2D 

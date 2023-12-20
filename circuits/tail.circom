@@ -1,10 +1,8 @@
 pragma circom 2.1.1;
 
 include "./utils/utils.circom";
-// include "./AveragePooling2D.circom";
-include "./node_modules/circomlib-ml/circuits/AveragePooling2D.circom";
-include "./node_modules/circomlib-ml/circuits/Dense.circom";
-// include "./Dense.circom";
+include "./AveragePooling2D.circom";
+include "./Dense.circom";
 
 template Tail(n) {
     // H x W x C
@@ -48,6 +46,10 @@ template Tail(n) {
     }
     log("end pooling");
 
+    component mimc_input = MimcHashMatrix3D(inputSize, inputSize, nChannels);
+    mimc_input.matrix <== in;
+    // log("MIMC_INPUT HASH : ", mimc_input.hash);
+
     // Compute Linear layer the result of the average pool.
     component dense = Dense (nChannels, nOutputs, n);
     dense.in <== avg_pool_out[0][0];
@@ -56,11 +58,9 @@ template Tail(n) {
     dense.out <== dense_out;
     dense.remainder <== dense_remainder;
     //
+    log("end dense");
     signal output out;
 
-    component mimc_input = MimcHashMatrix3D(inputSize, inputSize, nChannels);
-    mimc_input.matrix <== in;
-    log("MIMC_INPUT HASH : ", mimc_input.hash);
     step_in[1] === mimc_input.hash;
 
     // Compute Hash
@@ -93,3 +93,4 @@ template Tail(n) {
 
 component main { public [ step_in, dense_out ] } = Tail(10**15);
 // component main = Tail(10**15);
+
