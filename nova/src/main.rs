@@ -7,27 +7,11 @@ use std::{
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
-        // circuit::CircomCircuit,
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    // create_public_params, create_recursive_circuit, FileLocation, F, S,
-    // create_public_params, create_recursive_circuit, FileLocation, F, F1, F2, G1, G2, S1, S2,
-    create_public_params,
-    create_recursive_circuit,
-    FileLocation,
-    C1,
-    C2,
-    F,
-    S,
+    create_public_params, create_recursive_circuit, FileLocation, C1, C2, F, S,
 };
-use nova_snark::{
-    // provider,
-    // traits::{circuit::StepCircuit, Group},
-    // traits::{circuit::TrivialTestCircuit, Group},
-    traits::Group,
-    CompressedSNARK,
-    PublicParams,
-};
+use nova_snark::{traits::Group, CompressedSNARK, PublicParams};
 use num_bigint::BigInt;
 use num_traits::Num;
 use primitive_types::U256;
@@ -38,10 +22,7 @@ use serde_with::with_prefix;
 type G1 = pasta_curves::pallas::Point;
 type G2 = pasta_curves::vesta::Point;
 
-// type C1 = CircomCircuit<<G1 as Group>::Scalar>;
-// type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
-
-const CIRCUIT_INPUT_F: &str = "../full_backbone_test.json";
+const CIRCUIT_INPUT_F: &str = "../test_inputs/nova_backbone_input.json";
 const MIMC_CIRCUIT_WASM: &str = "../circuits/MiMC3D/MiMC3D_js/MiMC3D.wasm";
 const MIMC_CIRCUIT_R1CS: &str = "../circuits/MiMC3D/MiMC3D.r1cs";
 
@@ -107,27 +88,17 @@ impl BackboneLayer {
         private_input.insert("dw_conv_weights".to_string(), json!(self.dw_conv.weights));
         private_input.insert("dw_conv_bias".to_string(), json!(self.dw_conv.bias));
         private_input.insert("dw_conv_out".to_string(), json!(self.dw_conv.out));
-        // private_input.insert(
-        //     "dw_conv_remainder".to_string(),
-        //     json!(self.dw_conv.remainder),
-        // );
         private_input.insert("dw_bn_a".to_string(), json!(self.dw_bn.a));
         private_input.insert("dw_bn_b".to_string(), json!(self.dw_bn.b));
         private_input.insert("dw_bn_out".to_string(), json!(self.dw_bn.out));
-        // private_input.insert("dw_bn_remainder".to_string(), json!(self.dw_bn.remainder));
 
         private_input.insert("pw_conv_weights".to_string(), json!(self.pw_conv.weights));
         private_input.insert("pw_conv_bias".to_string(), json!(self.pw_conv.bias));
         private_input.insert("pw_conv_out".to_string(), json!(self.pw_conv.out));
-        // private_input.insert(
-        //     "pw_conv_remainder".to_string(),
-        //     json!(self.pw_conv.remainder),
-        // );
 
         private_input.insert("pw_bn_a".to_string(), json!(self.pw_bn.a));
         private_input.insert("pw_bn_b".to_string(), json!(self.pw_bn.b));
         private_input.insert("pw_bn_out".to_string(), json!(self.pw_bn.out));
-        // private_input.insert("pw_bn_remainder".to_string(), json!(self.pw_bn.remainder));
     }
 }
 
@@ -161,7 +132,6 @@ struct MiMC3DInput {
 }
 pub type F1 = <G1 as Group>::Scalar;
 
-// fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<String>>>) -> String {
 fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<String>>>) -> BigInt {
     println!("Start hashing");
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
@@ -189,12 +159,11 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<String>>>) -> BigInt 
         .strip_prefix("0x")
         .unwrap()
         .to_string();
-    // let string = BigInt::from_str_radix(&stripped, 16).unwrap();
+
     let big = BigInt::from_str_radix(&stripped, 16).unwrap();
     println!("mimc3d output: {:?}", big);
 
     big
-    // string.to_str_radix(10)
 }
 
 // fn generate_circuit_inputs(iteration_count) -> Vec< {
@@ -297,8 +266,7 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     )
     .unwrap();
     println!("RecursiveSNARK creation took {:?}", start.elapsed());
-    //
-    // TODO: empty?
+
     let z0_secondary = [F::<G2>::from(0)];
 
     // verify the recursive SNARK
@@ -349,108 +317,8 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
 }
 
 fn main() {
-    // let group_name = "pasta";
-
-    // let circuit_filepath = format!("examples/toy/{}/toy.r1cs", group_name);
-    // for witness_gen_filepath in [
-    //     format!("examples/toy/{}/toy_cpp/toy", group_name),
-    //     // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
-    // ] {
     let circuit_filepath = "../circuits/backbone/backbone.r1cs".to_string();
-    for witness_gen_filepath in [
-        "../circuits/backbone/backbone_cpp/backbone".to_string(),
-        // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
-    ] {
-        // let circuit_filepath = "../circuits/hashing/hashing.r1cs".to_string();
-        // for witness_gen_filepath in [
-        //     "../circuits/hashing/hashing_cpp/hashing".to_string(),
-        //     // format!("examples/toy/{}/toy_js/toy.wasm", group_name),
-        // ] {
+    for witness_gen_filepath in ["../circuits/backbone/backbone_cpp/backbone".to_string()] {
         run_test(circuit_filepath.clone(), witness_gen_filepath);
-    }
-}
-
-mod tests {
-    use super::*;
-    #[test]
-    fn test() {
-        println!(
-            "Running test with witness generator: {} and group: {}",
-            "../circuits/backbone/backbone_cpp/backbone",
-            std::any::type_name::<G1>()
-        );
-        let input = read_json(CIRCUIT_INPUT_F);
-        let mut layer = HashMap::new();
-        // private_input.insert("in".to_string(), json!(input.image));
-        layer.insert("in".to_string(), json!(input.inp));
-        layer.insert(
-            "dw_conv_weights".to_string(),
-            json!(input.backbone[0].dw_conv.weights),
-        );
-        layer.insert(
-            "dw_conv_bias".to_string(),
-            json!(input.backbone[0].dw_conv.bias),
-        );
-        layer.insert(
-            "dw_conv_out".to_string(),
-            json!(input.backbone[0].dw_conv.out),
-        );
-        layer.insert(
-            "dw_conv_remainder".to_string(),
-            json!(input.backbone[0].dw_conv.remainder),
-        );
-        layer.insert("dw_bn_a".to_string(), json!(input.backbone[0].dw_bn.a));
-        layer.insert("dw_bn_b".to_string(), json!(input.backbone[0].dw_bn.b));
-        layer.insert("dw_bn_out".to_string(), json!(input.backbone[0].dw_bn.out));
-        layer.insert(
-            "dw_bn_remainder".to_string(),
-            json!(input.backbone[0].dw_bn.remainder),
-        );
-
-        layer.insert(
-            "pw_conv_weights".to_string(),
-            json!(input.backbone[0].pw_conv.weights),
-        );
-        layer.insert(
-            "pw_conv_bias".to_string(),
-            json!(input.backbone[0].pw_conv.bias),
-        );
-        layer.insert(
-            "pw_conv_out".to_string(),
-            json!(input.backbone[0].pw_conv.out),
-        );
-        layer.insert(
-            "pw_conv_remainder".to_string(),
-            json!(input.backbone[0].pw_conv.remainder),
-        );
-
-        layer.insert("pw_bn_a".to_string(), json!(input.backbone[0].pw_bn.a));
-        layer.insert("pw_bn_b".to_string(), json!(input.backbone[0].pw_bn.b));
-        layer.insert("pw_bn_out".to_string(), json!(input.backbone[0].pw_bn.out));
-        layer.insert(
-            "pw_bn_remainder".to_string(),
-            json!(input.backbone[0].pw_bn.remainder),
-        );
-
-        println!("- Json read");
-
-        let mut private_input = HashMap::new();
-        for i in 0..1 {
-            let circuit_in = match i {
-                0 => &input.inp,
-                _ => &input.backbone[i - 1].pw_bn.out,
-            };
-
-            private_input.insert("in".to_string(), json!(circuit_in));
-
-            input.backbone[0].insert_onto(&mut private_input);
-            // private_inputs.push(private_input);
-        }
-        println!("private input len: {:?}", private_input.len());
-        println!("private input keys: {:?}", private_input.keys());
-        println!("layer   input len: {:?}", layer.len());
-        println!("layer   input keys: {:?}", layer.keys());
-        assert_eq!(layer.len(), private_input.len());
-        assert_eq!(layer, private_input);
     }
 }

@@ -12,16 +12,13 @@ Circuit implementation in [Nova](https://github.com/microsoft/Nova)
 
 # Compiling the circuits
 to compile the circuits you need to install circom and snarkjs. After that, go through the following steps
+
 ```bash
-cd circuits;
-npm install; # Downloads circomlib-ml and dependencies
-sh compile.sh head # Compiles the head
-sh compile.sh backbone # Compiles the backbone
-sh compile.sh tail # Compiles the tail
+sh compile-circuits.sh
 ```
 
 # Running Nova circuit
-To run the nova circuit we just need a standard `cargo run --release` with `test_inputs/nova_backbone_input.json` inplace and with the `backbone.circom` circuit properly compiled as described above.
+To run the nova circuit we just need to `cd nova` to get into the nova directory and then run `cargo run --release` with `test_inputs/nova_backbone_input.json` inplace and with the two circuits `backbone.circom` and `MiMC3D.circom` properly compiled.
 
 In order to run the nova circuit we need more than 64GBs of RAM for even a 2 layer input. I believe there might be a memory leak somewhere in nova-scotia or in nova itself.
 
@@ -39,3 +36,9 @@ The image input and model weights have been quantized using a multiplication by 
 Pytorch already has a quantization method implemented as described in their [docs](https://pytorch.org/docs/stable/quantization.html) and in [this paper](https://arxiv.org/pdf/1712.05877.pdf). 
 
 Making the circuits compatible with the pytorch quantization method would be a good next step.
+
+# Acknowledgements
+* [circomlib-ml](https://github.com/socathie/circomlib-ml) - for many of the ML circuits used here
+* [zator](https://github.com/lyronctk/zator) - For some of the nova logic and MiMC3D circuit
+* [toy example for nova-scotia](https://github.com/nalinbhardwaj/Nova-Scotia/tree/main/examples/toy) - For the initial code structure for `nova/src/main.rs`
+
